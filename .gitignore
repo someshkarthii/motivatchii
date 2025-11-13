@@ -1,0 +1,29 @@
+# Virtual environment
+venv/
+
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*.log
+
+# SQLite database (local only)
+db.sqlite3
+
+# Environment / secrets
+.env
+
+# Frontend dependencies and build files
+frontend/node_modules/
+frontend/build/
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# OS or IDE files
+.DS_Store
+.vscode/
+.idea/
