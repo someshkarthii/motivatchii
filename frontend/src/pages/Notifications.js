@@ -40,7 +40,7 @@ export default function Notifications() {
   useEffect(() => {
     async function fetchCommunityNotifications() {
       try {
-        const response = await fetch('http://localhost:8000/api/notifications/', {
+        const response = await fetch('https://motivatchi-backend.onrender.com/api/notifications/', {
           credentials: 'include', // send session cookie
         });
         if (!response.ok) throw new Error('Failed to fetch notifications');

@@ -93,7 +93,7 @@ function Dashboard() {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/me/", {
+        const res = await fetch("https://motivatchi-backend.onrender.com/api/me/", {
           credentials: "include",
         });
         if (!res.ok) {
@@ -138,7 +138,7 @@ function Dashboard() {
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/tamagotchi/health/", {
+        const res = await fetch("https://motivatchi-backend.onrender.com/api/tamagotchi/health/", {
           credentials: "include",
         });
         if (res.ok) {
@@ -165,7 +165,7 @@ function Dashboard() {
     if (!outfit?.unlocked) return;
 
     try {
-      const res = await fetch("http://localhost:8000/api/tamagotchi/set-outfit/", {
+      const res = await fetch("https://motivatchi-backend.onrender.com/api/tamagotchi/set-outfit/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -205,7 +205,7 @@ function Dashboard() {
     if (!outfitToBuy) return;
 
     try {
-      const res = await fetch("http://localhost:8000/api/tamagotchi/purchase-outfit/", {
+      const res = await fetch("https://motivatchi-backend.onrender.com/api/tamagotchi/purchase-outfit/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
