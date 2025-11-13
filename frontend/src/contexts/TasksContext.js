@@ -28,7 +28,7 @@ export const TasksProvider = ({ children }) => {
   const fetchTasks = async () => {
     try {
       // get tasks from backend
-      const response = await fetch("https://motivatchi-backend.onrender.com/api/tasks/", {
+      const response = await fetch("http://localhost:8000/api/tasks/", {
         credentials: "include", // sends Django session cookie
       });
       const data = await response.json();
@@ -48,7 +48,7 @@ export const TasksProvider = ({ children }) => {
   const addTask = async (taskData) => {
     try {
       // post to django backend
-      const response = await fetch("https://motivatchi-backend.onrender.com/api/tasks/", {
+      const response = await fetch("http://localhost:8000/api/tasks/", {
         credentials: "include",
         method: "POST",
         headers: {
@@ -79,7 +79,7 @@ export const TasksProvider = ({ children }) => {
   const updateTask = async (taskData) => {
     try {
       //change in django
-      const response = await fetch(`https://motivatchi-backend.onrender.com/api/tasks/${taskData.id}/`, {
+      const response = await fetch(`http://localhost:8000/api/tasks/${taskData.id}/`, {
         method: "PATCH",
         credentials: "include",
         headers: {
@@ -111,7 +111,7 @@ export const TasksProvider = ({ children }) => {
   const deleteTask = async (taskId) => {
     try {
       // delete in django
-      const response = await fetch(`https://motivatchi-backend.onrender.com/api/tasks/${taskId}/`, {
+      const response = await fetch(`http://localhost:8000/api/tasks/${taskId}/`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -130,7 +130,7 @@ export const TasksProvider = ({ children }) => {
   const markComplete = async (taskId, onReward) => {
     try {
       // Use new backend endpoint for completion and rewards
-      const response = await fetch(`https://motivatchi-backend.onrender.com/api/tasks/${taskId}/complete/`, {
+      const response = await fetch(`http://localhost:8000/api/tasks/${taskId}/complete/`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -158,7 +158,7 @@ export const TasksProvider = ({ children }) => {
   const markIncomplete = async (taskId, onPenalty) => {
     try {
       // Use new backend endpoint for marking incomplete and penalties
-      const response = await fetch(`https://motivatchi-backend.onrender.com/api/tasks/${taskId}/mark_incomplete/`, {
+      const response = await fetch(`http://localhost:8000/api/tasks/${taskId}/mark_incomplete/`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -192,7 +192,7 @@ export const TasksProvider = ({ children }) => {
     const pollOverdueTasks = async () => {
       try {
         // fetch all tasks from backend
-        const res = await fetch("https://motivatchi-backend.onrender.com/api/tasks/", {
+        const res = await fetch("http://localhost:8000/api/tasks/", {
           credentials: "include",
         });
         if (!res.ok) {
@@ -212,7 +212,7 @@ export const TasksProvider = ({ children }) => {
         await Promise.all(overdueTasks.map(async (task) => {
           try {
             // mark task overdue in backend
-            const resp1 = await fetch(`https://motivatchi-backend.onrender.com/api/tasks/${task.id}/`, {
+            const resp1 = await fetch(`http://localhost:8000/api/tasks/${task.id}/`, {
               method: "PATCH",
               credentials: "include",
               headers: { "Content-Type": "application/json" },
@@ -224,7 +224,7 @@ export const TasksProvider = ({ children }) => {
             }
 
             // decrease Tamagotchi health
-            const resp2 = await fetch("https://motivatchi-backend.onrender.com/api/tamagotchi/health/", {
+            const resp2 = await fetch("http://localhost:8000/api/tamagotchi/health/", {
               method: "POST",
               credentials: "include",
               headers: { "Content-Type": "application/json" },

@@ -65,7 +65,7 @@ function Community() {
     // initialize user following and followers list
     const fetchConnections = async () => {
       try {
-        const response = await fetch("https://motivatchi-backend.onrender.com/api/connections/", {
+        const response = await fetch("http://localhost:8000/api/connections/", {
           credentials: "include", // include session cookie for authentication
         });
 
@@ -143,7 +143,7 @@ function Community() {
     }
 
     try {
-      const response = await fetch("https://motivatchi-backend.onrender.com/api/follow/", {
+      const response = await fetch("http://localhost:8000/api/follow/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -168,7 +168,7 @@ function Community() {
 
   const handleUnfollow = async (username) => {
     try {
-      const response = await fetch("https://motivatchi-backend.onrender.com/api/unfollow/", {
+      const response = await fetch("http://localhost:8000/api/unfollow/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -195,7 +195,7 @@ function Community() {
 
   const handleRemoveFollower = async (username) => {
     try {
-      const response = await fetch("https://motivatchi-backend.onrender.com/api/remove-follower/", {
+      const response = await fetch("http://localhost:8000/api/remove-follower/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -228,10 +228,10 @@ function Community() {
 
     try {
       const [tamaRes, coinsRes] = await Promise.all([
-        fetch(`https://motivatchi-backend.onrender.com/api/following/${user.username}/tamagotchi/`, {
+        fetch(`http://localhost:8000/api/following/${user.username}/tamagotchi/`, {
           credentials: "include",
         }),
-        fetch(`https://motivatchi-backend.onrender.com/api/following/${user.username}/coins/`, {
+        fetch(`http://localhost:8000/api/following/${user.username}/coins/`, {
           credentials: "include",
         })
       ]);

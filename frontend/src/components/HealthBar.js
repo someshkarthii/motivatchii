@@ -7,7 +7,7 @@ const HealthBar = forwardRef(({ health: healthProp }, ref) => {
 
   const fetchHealth = async () => {
     try {
-      const response = await axios.get("https://motivatchi-backend.onrender.com/api/tamagotchi/health/", {
+      const response = await axios.get("http://localhost:8000/api/tamagotchi/health/", {
         withCredentials: true,
       });
       setHealth(response.data.health);

@@ -83,7 +83,7 @@ function Analytics() {
 
   const fetchAnalyticsData = async (mode) => {
     try {
-      const res = await fetch(`https://motivatchi-backend.onrender.com/api/tasks/analytics/?period=${mode}`, {
+      const res = await fetch(`http://localhost:8000/api/tasks/analytics/?period=${mode}`, {
         credentials: "include",
       });
       if (!res.ok) {
