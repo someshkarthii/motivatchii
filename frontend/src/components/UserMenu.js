@@ -35,7 +35,7 @@ const UserMenu = ({ icon, label = 'Logout', onLogout }) => {
 
   const handleLogoutClick = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/logout/', {
+      const response = await fetch('https://backend-purple-field-5089.fly.dev/api/logout/', {
         method: 'POST',
         credentials: 'include', 
       });

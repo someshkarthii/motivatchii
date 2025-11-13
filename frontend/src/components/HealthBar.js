@@ -7,7 +7,7 @@ const HealthBar = forwardRef(({ health: healthProp }, ref) => {
 
   const fetchHealth = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/api/tamagotchi/health/", {
+      const response = await axios.get("https://backend-purple-field-5089.fly.dev/api/tamagotchi/health/", {
         withCredentials: true,
       });
       setHealth(response.data.health);

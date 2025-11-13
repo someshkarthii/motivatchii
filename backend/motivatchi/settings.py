@@ -1,12 +1,11 @@
 from pathlib import Path
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-1d&47z$koj17+4f4)nthb##i%&h7dd7^zjf+r=+*hmhd4s5)g*'
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 DEBUG = True
-
-ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -62,8 +61,6 @@ WSGI_APPLICATION = 'motivatchi.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'motivatchi_db',
         'USER': 'motivatchi_db_user',
@@ -91,7 +88,7 @@ USE_TZ = True
 
 
 # Static files
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -101,22 +98,34 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://backend-purple-field-5089.fly.dev",
+    "https://motivatchi.fly.dev",
 ]
 
-CORS_ALLOW_CREDENTIALS = True   
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://backend-purple-field-5089.fly.dev",
+    "https://motivatchi.fly.dev/",
+    "https://*.fly.dev",
 ]
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+CORS_ALLOW_CREDENTIALS = True
+
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "backend-purple-field-5089.fly.dev",
+    "motivatchi.fly.dev",
+    ".fly.dev",
+]
 
 
 #Cookie configuration for session persistence across frontend/backend
-SESSION_COOKIE_SAMESITE = None       # allow cookies cross-site
-SESSION_COOKIE_SECURE = False        # only True for HTTPS
-CSRF_COOKIE_SAMESITE = None          # allow CSRF cookie cross-site
-CSRF_COOKIE_SECURE = False           # only True for HTTPS
+SESSION_COOKIE_SAMESITE = "None"       # allow cookies cross-site
+SESSION_COOKIE_SECURE = True        # only True for HTTPS
+CSRF_COOKIE_SAMESITE = "None"          # allow CSRF cookie cross-site
+CSRF_COOKIE_SECURE = True           # only True for HTTPS
 
 # Explicitly name session cookie (helps debugging)
 SESSION_COOKIE_NAME = "sessionid"

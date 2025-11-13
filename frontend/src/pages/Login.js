@@ -56,7 +56,7 @@ function Login() {
     setErrors({});
 
     try {
-      const response = await fetch("http://localhost:8000/api/login/", {
+      const response = await fetch("https://backend-purple-field-5089.fly.dev/api/login/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
