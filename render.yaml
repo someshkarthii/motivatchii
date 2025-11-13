@@ -5,10 +5,13 @@ services:
     plan: free
 
     buildCommand: |
+      cd backend
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
 
-    startCommand: "gunicorn motivatchi.wsgi:application --timeout 600"
+    startCommand: |
+      cd backend
+      gunicorn motivatchi.wsgi:application --timeout 600
 
     envVars:
       - key: DATABASE_URL
