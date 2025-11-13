@@ -9,6 +9,7 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
+      python manage.py migrate
 
     startCommand: |
       gunicorn motivatchi.wsgi:application --timeout 600
@@ -24,9 +25,6 @@ services:
 
       - key: DEBUG
         value: "False"
-
-    postDeploy:
-      - python manage.py migrate
 
 databases:
   - name: motivatchi-db
