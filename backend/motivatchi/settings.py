@@ -4,20 +4,38 @@ import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-1d&47z$koj17+4f4)nthb##i%&h7dd7^zjf+r=+*hmhd4s5)g*")
+# ============================================
+# SECRET KEY — MUST be set in Render env vars
+# ============================================
+SECRET_KEY = os.getenv(
+    "SECRET_KEY",
+    "django-insecure-development-key"  # fallback ONLY for local use
+)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DEBUG", "True") == "True"
+# ============================================
+# DEBUG
+# ============================================
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
-# Allow all hosts on Render, limit locally
+# ============================================
+# ALLOWED_HOSTS
+# ============================================
+RENDER_EXTERNAL_HOSTNAME = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    os.getenv("RENDER_EXTERNAL_HOSTNAME", "")
 ]
 
-# Application definition
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Your backend Render URL
+ALLOWED_HOSTS.append("motivatchi-backend.onrender.com")
+
+# ============================================
+# INSTALLED APPS
+# ============================================
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -36,6 +54,9 @@ INSTALLED_APPS = [
     'tasks',
 ]
 
+# ============================================
+# MIDDLEWARE
+# ============================================
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -48,35 +69,18 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# ============================================
+# URL & WSGI
+# ============================================
 ROOT_URLCONF = 'motivatchi.urls'
-
-TEMPLATES = [
-    {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
-            ],
-        },
-    },
-]
-
 WSGI_APPLICATION = 'motivatchi.wsgi.application'
 
-
 # ============================================
-# DATABASE CONFIG — Local vs Render
+# DATABASE — Render or local fallback
 # ============================================
-
-# If Render provides DATABASE_URL → use that.
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
-    # Production database (Render)
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
@@ -85,7 +89,7 @@ if DATABASE_URL:
         )
     }
 else:
-    # Local development using your existing shared Render DB
+    # Local dev DB
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
@@ -97,7 +101,6 @@ else:
         }
     }
 
-
 # ============================================
 # PASSWORD VALIDATION
 # ============================================
@@ -108,7 +111,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-
 # ============================================
 # INTERNATIONALIZATION
 # ============================================
@@ -117,24 +119,22 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-
 # ============================================
-# STATIC FILES (needed for Render)
+# STATIC FILES (Render)
 # ============================================
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
-
-# ============================================
-# DEFAULTS
-# ============================================
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # ============================================
-# CORS / CSRF
+# CORS / CSRF CONFIG — FINAL PRODUCTION VERSION
 # ============================================
+
+FRONTEND_URL = "https://motivatchi.onrender.com"
+BACKEND_URL = "https://motivatchi-backend.onrender.com"
+
 CORS_ALLOWED_ORIGINS = [
+    FRONTEND_URL,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
@@ -142,22 +142,25 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
+    FRONTEND_URL,
+    BACKEND_URL,
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    # Allow Render frontend if needed later:
-    # "https://your-frontend.onrender.com"
 ]
 
-SESSION_COOKIE_SAMESITE = None
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SAMESITE = None
-CSRF_COOKIE_SECURE = False
+# ============================================
+# COOKIES (Fix authentication issues)
+# ============================================
+SESSION_COOKIE_SAMESITE = 'None'
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_COOKIE_SECURE = True
 
 SESSION_COOKIE_NAME = "sessionid"
 
-
 # ============================================
-# Django REST Framework
+# REST FRAMEWORK
 # ============================================
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
@@ -168,4 +171,5 @@ REST_FRAMEWORK = {
     ],
 }
 
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
