@@ -4,13 +4,13 @@ services:
     env: python
     plan: free
 
+    rootDir: backend
+
     buildCommand: |
-      cd backend
       pip install -r requirements.txt
       python manage.py collectstatic --noinput
 
     startCommand: |
-      cd backend
       gunicorn motivatchi.wsgi:application --timeout 600
 
     envVars:
@@ -24,6 +24,9 @@ services:
 
       - key: DEBUG
         value: "False"
+
+    postDeploy:
+      - python manage.py migrate
 
 databases:
   - name: motivatchi-db
