@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaBell } from 'react-icons/fa';
 import frogIcon from '../assets/frog-icon.png';
 import UserMenu from '../components/UserMenu';
+import InfoMenu from '../components/InfoMenu';
 import '../styles.css'; 
 
 
@@ -115,6 +116,7 @@ export default function Notifications() {
           <img src={frogIcon} alt="Motivatchi Pet" className="header-pet" />
         </div>
         <div className="header-right">
+          <InfoMenu />
           <UserMenu />
         </div>
       </div>
@@ -124,24 +126,49 @@ export default function Notifications() {
             <div>
               <h2 className="section-title">Overdue</h2>
               {overdue.map(task => (
-                <div key={`ov-${task.id}`} className="notif-item" onClick={() => navigate('/tasks')} role="button" tabIndex={0}>
+              <div
+                key={`ov-${task.id}`}
+                className="notif-item"
+                onClick={() => navigate('/tasks')}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/tasks'); }}
+                role="button"
+                tabIndex={0}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div className="notif-left">{task.name}</div>
-                  <div className="notif-right">Overdue</div>
+                  {task._deadlineDate && (
+                    <div className="notif-sub">{task._deadlineDate.toLocaleDateString()}</div>
+                  )}
                 </div>
-              ))}
+                <div className="notif-right">Overdue</div>
+              </div>
+            ))}
             </div>
           )}
 
           <div>
             <h2 className="section-title">Upcoming (next 5 days)</h2>
+
             {upcoming.length === 0 ? (
               <div className="no-notifs">No upcoming tasks in the next 5 days</div>
             ) : (
               upcoming.map((task) => {
                 const days = daysUntil(task.deadline);
                 return (
-                  <div key={task.id} className="notif-item" onClick={() => navigate('/tasks')} role="button" tabIndex={0}>
-                    <div className="notif-left">{task.name}</div>
+                  <div
+                    key={task.id}
+                    className="notif-item"
+                    onClick={() => navigate('/tasks')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/tasks'); }}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div className="notif-left">{task.name}</div>
+                      {task._deadlineDate && (
+                        <div className="notif-sub">{task._deadlineDate.toLocaleDateString()}</div>
+                      )}
+                    </div>
                     <div className="notif-right">{humanDueText(days)}</div>
                   </div>
                 );
@@ -150,15 +177,23 @@ export default function Notifications() {
           </div>
         </div>
 
-        <div className="notifications-right">
+          <div className="notifications-right">
           <h3 className="section-title">Community Notifications</h3>
 
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 16 }}>
             {recentCommunityNotifs.length === 0 ? (
               <div className="no-notifs">No community notifications</div>
             ) : (
               recentCommunityNotifs.map(n => (
-                <div key={`f-${n.id}`} className="notif-item">
+                <div
+                  key={`f-${n.id}`}
+                  className="notif-item"
+                  onClick={() => navigate('/community')}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/community'); }}
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`Open community notification: ${n.message}`}
+                >
                   <div className="notif-left" style={{ color: '#274e2f', fontWeight: 600 }}>{n.message}</div>
                   <div className="notif-right" style={{ fontSize: 12, color: '#6b8e6b' }}>{new Date(n.created_at).toLocaleDateString()}</div>
                 </div>

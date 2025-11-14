@@ -3,7 +3,7 @@ import Modal from "react-modal";
 import DatePicker from "react-datepicker";
 import Select from "react-select";
 import "react-datepicker/dist/react-datepicker.css";
-import "./TaskModal.css";
+import "./Modal.css";
 
 const TaskModal = ({ isOpen, onClose, mode, onSave, task, existingTasks }) => {
 

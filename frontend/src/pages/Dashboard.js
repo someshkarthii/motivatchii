@@ -7,6 +7,7 @@ import eggIcon from '../assets/egg-icon.png';
 import heartIcon from '../assets/heart.png';
 import coinIcon from '../assets/coin-icon.png';
 import UserMenu from '../components/UserMenu';
+import InfoMenu from '../components/InfoMenu';
 import HealthBar from '../components/HealthBar';
 
 // Outfit images
@@ -300,7 +301,8 @@ function Dashboard() {
               </div>
               <span style={{ fontSize: '0.8em', marginLeft: 8 }}>{userXP}/100 XP</span>
             </div>
-            <div className="profile-icon" style={{ background: 'transparent' }}>
+            <div className="profile-icon" style={{ background: 'transparent', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <InfoMenu />
               <UserMenu />
             </div>
           </div>

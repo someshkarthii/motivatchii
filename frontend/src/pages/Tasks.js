@@ -4,21 +4,26 @@ import frogIcon from '../assets/frog-icon.png';
 import TaskModal from "./TaskModal";
 import { useTasks } from '../contexts/TasksContext';
 import UserMenu from '../components/UserMenu';
+import InfoMenu from '../components/InfoMenu';
 
 const Tasks = () => {
   // tasks come from shared TasksContext
   const { tasks, fetchTasks, addTask, updateTask, deleteTask, markComplete, markIncomplete } = useTasks();
-  const [priorityFilter, setPriorityFilter] = useState(null);
+  // allow multiple selected priorities/categories
+  const [priorityFilter, setPriorityFilter] = useState([]);
   const [sortOrder, setSortOrder] = useState('asc');
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showDeadlineDropdown, setShowDeadlineDropdown] = useState(false);
+  const priorityRef = useRef(null);
+  const categoryRef = useRef(null);
+  const deadlineRef = useRef(null);
   const [deadlineSort, setDeadlineSort] = useState(null); // 'closest' or 'farthest'
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
   const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState(null);
   const [isConfirmVisible, setIsConfirmVisible] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [categoryFilter, setCategoryFilter] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState();
@@ -67,10 +72,25 @@ const Tasks = () => {
   // close action menu on outside click
   useEffect(() => {
     function handleDocClick(e) {
-      if (!e.target.closest('.row-action-button') && !e.target.closest('.row-actions-menu')) {
+      const tgt = e.target;
+
+      // close row action menus when clicking outside
+      if (!tgt.closest('.row-action-button') && !tgt.closest('.row-actions-menu')) {
         setOpenActionMenuId(null);
       }
+
+      // Use refs to determine if the click was inside the header cell or its dropdown
+      if (priorityRef.current && !priorityRef.current.contains(tgt)) {
+        setShowPriorityDropdown(false);
+      }
+      if (categoryRef.current && !categoryRef.current.contains(tgt)) {
+        setShowCategoryDropdown(false);
+      }
+      if (deadlineRef.current && !deadlineRef.current.contains(tgt)) {
+        setShowDeadlineDropdown(false);
+      }
     }
+
     document.addEventListener('click', handleDocClick);
     return () => document.removeEventListener('click', handleDocClick);
   }, []);
@@ -120,8 +140,13 @@ const Tasks = () => {
   const applyFiltersAndSort = () => {
     const now = new Date();
     const filtered = tasks.filter((t) => {
-      if (priorityFilter && t.priority.toLowerCase() !== priorityFilter) return false;
-      if (categoryFilter && (t.category || '').trim().toLowerCase() !== categoryFilter) return false;
+      if (priorityFilter && Array.isArray(priorityFilter) && priorityFilter.length > 0) {
+        if (!priorityFilter.includes((t.priority || '').toLowerCase())) return false;
+      }
+      if (categoryFilter && Array.isArray(categoryFilter) && categoryFilter.length > 0) {
+        const cat = (t.category || '').trim().toLowerCase();
+        if (!categoryFilter.includes(cat)) return false;
+      }
       if (deadlineSort) {
         const d = new Date(t.deadline);
         const diffDays = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
@@ -216,6 +241,7 @@ const Tasks = () => {
           <img src={frogIcon} alt="Motivatchi Pet" className="header-pet" />
         </div>
         <div className="header-right">
+          <InfoMenu />
           <UserMenu />
         </div>
       </div>
@@ -226,10 +252,10 @@ const Tasks = () => {
           {/* Table Header */}
           <div className="table-header">
             <div className="header-cell">Name</div>
-            <div className="header-cell category-cell" onClick={handleCategoryClick}>
+            <div ref={categoryRef} className="header-cell category-cell" onClick={handleCategoryClick}>
               Category ▼
               {showCategoryDropdown && (
-                <div className="priority-dropdown"> 
+                <div className="priority-dropdown" onClick={(e) => e.stopPropagation()}> 
                   <div className="priority-title">Category</div>
                   {categoryOptions.length === 0 ? (
                     <div className="priority-option" style={{ opacity: 0.8 }}>No categories yet</div>
@@ -238,8 +264,8 @@ const Tasks = () => {
                       <label key={c} className="priority-option">
                         <input
                           type="checkbox"
-                          checked={categoryFilter === c.toLowerCase()}
-                          onChange={() => setCategoryFilter(prev => prev === c.toLowerCase() ? null : c.toLowerCase())}
+                          checked={categoryFilter.includes(c.toLowerCase())}
+                          onChange={() => setCategoryFilter(prev => prev.includes(c.toLowerCase()) ? prev.filter(x => x !== c.toLowerCase()) : [...prev, c.toLowerCase()])}
                         />
                         {c}
                       </label>
@@ -248,17 +274,17 @@ const Tasks = () => {
                 </div>
               )}
             </div>
-            <div className="header-cell priority-cell" onClick={handlePriorityClick}>
+            <div ref={priorityRef} className="header-cell priority-cell" onClick={handlePriorityClick}>
               Priority ▼
               {showPriorityDropdown && (
-                <div className="priority-dropdown">
+                <div className="priority-dropdown" onClick={(e) => e.stopPropagation()}>
                   <div className="priority-title">Priority</div>
                   {priorityOptions.map((priority) => (
                     <label key={priority} className="priority-option">
                       <input
                         type="checkbox"
-                        checked={priorityFilter === priority.toLowerCase()}
-                        onChange={() => setPriorityFilter(prev => prev === priority.toLowerCase() ? null : priority.toLowerCase())}
+                        checked={priorityFilter.includes(priority.toLowerCase())}
+                        onChange={() => setPriorityFilter(prev => prev.includes(priority.toLowerCase()) ? prev.filter(x => x !== priority.toLowerCase()) : [...prev, priority.toLowerCase()])}
                       />
                       {priority}
                     </label>
@@ -266,10 +292,10 @@ const Tasks = () => {
                 </div>
               )}
             </div>
-            <div className="header-cell deadline-cell" onClick={handleDeadlineClick}>
+            <div ref={deadlineRef} className="header-cell deadline-cell" onClick={handleDeadlineClick}>
               Deadline ▼
               {showDeadlineDropdown && (
-                <div className="priority-dropdown"> {/* reuse same styling */}
+                <div className="priority-dropdown" onClick={(e) => e.stopPropagation()}> {/* reuse same styling */}
                   <div className="priority-title">Deadline</div>
                   {deadlineOptions.map((option) => (
                     <label key={option.label} className="priority-option">

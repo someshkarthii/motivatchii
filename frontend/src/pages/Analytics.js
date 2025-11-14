@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import UserMenu from '../components/UserMenu';
+import InfoMenu from '../components/InfoMenu';
 import { FaChartBar, FaChartLine, FaCalendarAlt, FaCheckCircle, FaClock, FaExclamationTriangle } from 'react-icons/fa';
 import frogIcon from '../assets/frog-icon.png';
-import './TaskModal.css';
+import './Modal.css';
 
 function Analytics() {
   const navigate = useNavigate();
@@ -139,6 +140,7 @@ function Analytics() {
           <img src={frogIcon} alt="Motivatchi Pet" className="analytics-header-pet" />
         </div>
         <div className="header-right">
+          <InfoMenu />
           <UserMenu />
         </div>
       </div>

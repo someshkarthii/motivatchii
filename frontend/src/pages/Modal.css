@@ -1,3 +1,4 @@
+/* Modal shared styles (renamed from TaskModal.css) */
 .task-modal-overlay {
   position: fixed;
   inset: 0;
@@ -38,6 +39,63 @@
   font-family: fantasy;
   letter-spacing: 5px;
   margin: 0;
+}
+
+/* Smaller title for informational modal so the title fits on one line */
+.info-modal-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: #5a6d2c;
+  font-family: fantasy;
+  letter-spacing: 2px;
+  margin: 0;
+  text-align: center;
+}
+
+.info-modal-body {
+  color: #4d5d29;
+  line-height: 1.6;
+}
+
+.info-section {
+  margin-top: 12px;
+}
+
+.info-section h3 {
+  margin: 6px 0 6px 0;
+  font-size: 16px;
+  color: #4d5d29;
+}
+
+.info-section p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #3d4b22;
+}
+
+/* Coin icon used inline in info modal */
+.info-coin {
+  width: 16px;
+  height: 16px;
+  vertical-align: text-bottom;
+  margin: 0 6px 0 0;
+}
+
+.info-list {
+  margin: 8px 0 0 0;
+  padding-left: 18px;
+}
+
+.info-list li {
+  margin-bottom: 6px;
+  color: #32421a;
+}
+
+.info-modal-content {
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding-right: 12px;
 }
 
 .task-modal-close {

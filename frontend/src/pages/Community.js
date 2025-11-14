@@ -22,8 +22,9 @@ import frogIconSad from '../assets/frog-icon-sad.png';
 import heartIcon from '../assets/heart.png';
 import coinIcon from '../assets/coin-icon.png';
 import UserMenu from '../components/UserMenu';
+import InfoMenu from '../components/InfoMenu';
 import { FaUsers } from 'react-icons/fa';
-import './TaskModal.css';
+import './Modal.css';
 import '../styles.css';
 
 function Community() {
@@ -60,6 +61,30 @@ function Community() {
   strawberry: strawberryFrogSad,
 };
 
+// Handle follow from team members panel
+  const handleFollow = async (username) => {
+    try {
+      const response = await fetch("https://backend-purple-field-5089.fly.dev/api/follow/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ username }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setFollowing((prev) => [...prev, { username }]);
+        alert(`You are now following ${username}.`);
+      } else {
+        alert(data.error || data.detail || "Unable to follow this user.");
+      }
+    } catch (err) {
+      console.error("Error following user:", err);
+      alert("Something went wrong. Please try again.");
+    }
+  };
+
 
   useEffect(() => {
     // initialize user following and followers list
@@ -83,54 +108,124 @@ function Community() {
 
     fetchConnections();
 
-    // Weekly challenge logic: generate challenge every Sunday, deadline Saturday
-    const now = new Date();
-    // Find last Sunday 12:00am
-    const lastSunday = new Date(now);
-    lastSunday.setDate(now.getDate() - now.getDay()); // Sunday
-    lastSunday.setHours(0, 0, 0, 0);
-    // Find next Saturday 11:59pm
-    const nextSaturday = new Date(lastSunday);
-    nextSaturday.setDate(lastSunday.getDate() + 6);
-    nextSaturday.setHours(23, 59, 59, 999);
+    // Fetch the weekly challenge from backend
+    const fetchWeeklyChallenge = async () => {
+      try {
+        const response = await fetch("https://backend-purple-field-5089.fly.dev/api/challenges/weekly/", {
+          credentials: "include",
+        });
 
-    // TODO backend: fetch the weekly challenge for this week from backend
-    // If there is not one stored in the backend, generate from frontend and POST to backend
-    const challengeObject = generateWeeklyChallenge(lastSunday, nextSaturday);
-    setWeeklyChallenge(challengeObject);
-    // TODO backend: save challengeObject to backend if not already present
+        if (response.ok) {
+          const data = await response.json();
+          // Transform backend response to match frontend format
+          const challengeObject = {
+            taskCount: data.task_count,
+            priority: data.priority,
+            description: data.description,
+            start: data.start_date,
+            deadline: data.deadline
+          };
+          setWeeklyChallenge(challengeObject);
+        } else {
+          console.error("Failed to fetch weekly challenge");
+        }
+      } catch (error) {
+        console.error("Error fetching weekly challenge:", error);
+      }
+    };
+
+    fetchWeeklyChallenge();
+
+    // Check if user has already joined the challenge
+    const checkChallengeStatus = async () => {
+      try {
+        const response = await fetch("https://backend-purple-field-5089.fly.dev/api/challenges/status/", {
+          credentials: "include",
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setHasJoinedChallenge(data.has_joined);
+          
+          // If user has joined, fetch team members and progress
+          if (data.has_joined) {
+            fetchTeamMembers();
+            fetchTeamProgress();
+          }
+        }
+      } catch (error) {
+        console.error("Error checking challenge status:", error);
+      }
+    };
+
+    checkChallengeStatus();
   }, []);
 
-  const generateWeeklyChallenge = (startDate, deadlineDate) => {
-    const taskCount = Math.floor(Math.random() * (30 - 15 + 1)) + 15;
-    const priorities = ['High', 'Medium', 'Low'];
-    const randomPriority = priorities[Math.floor(Math.random() * priorities.length)];
-    return {
-      taskCount,
-      priority: randomPriority,
-      description: `Complete ${taskCount} ${randomPriority} priority tasks`,
-      start: startDate.toISOString(),
-      deadline: deadlineDate.toISOString()
-    };
+  // Fetch team members for the current challenge
+  const fetchTeamMembers = async () => {
+    try {
+      const response = await fetch("https://backend-purple-field-5089.fly.dev/api/challenges/team-members/", {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTeamMembers(data.team_members || []);
+      }
+    } catch (error) {
+      console.error("Error fetching team members:", error);
+    }
   };
 
-  const handleJoinChallenge = () => {
-    setHasJoinedChallenge(true);
-    // TODO Backend: go through the following list of he user and see who has actually joined the challenge and add them to
-    // a list called joinedTeamMembers and setTeamMembers(joinTeamMembers)
-    // TODO Backend: also when the user joins the challemge make sure to store it so that when other users login, they can fetch the information
-    // that one of their following has joined the challenge 
-    
-    // Simulate challenge progress
-    if (weeklyChallenge) {
-      // TODO Backend: get the total number of tasks completed based on the challenge (ie. if the challenge is complete 24 low priority tasks then we want
-      // to get the number of low priority tasks completed from everyone in the joinedTeamMembers list and sum them together)
-      // setChallengeProgress({completed, total: weeklyChallenge.taskCount})
-      const completed = 0;
-      setChallengeProgress({
-        completed,
-        total: weeklyChallenge.taskCount
+  // Fetch team progress for the current challenge
+  const fetchTeamProgress = async () => {
+    try {
+      const response = await fetch("https://backend-purple-field-5089.fly.dev/api/challenges/team-progress/", {
+        credentials: "include",
       });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChallengeProgress({
+          completed: data.completed,
+          total: data.total
+        });
+        
+        // If reward was earned, show notification or update UI
+        if (data.reward_earned > 0) {
+          console.log(`Congratulations! You earned ${data.reward_earned} coins!`);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching team progress:", error);
+    }
+  };
+
+  const handleJoinChallenge = async () => {
+    try {
+      const response = await fetch("https://backend-purple-field-5089.fly.dev/api/challenges/join/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setHasJoinedChallenge(true);
+        
+        // Fetch team members (friends who have joined the challenge)
+        await fetchTeamMembers();
+        
+        // Fetch team progress
+        await fetchTeamProgress();
+      } else {
+        const data = await response.json();
+        alert(data.error || "Failed to join challenge");
+      }
+    } catch (error) {
+      console.error("Error joining challenge:", error);
+      alert("Something went wrong. Please try again.");
     }
   };
 
@@ -291,6 +386,7 @@ function Community() {
           <img src={frogIcon} alt="Motivatchi Pet" className="header-pet" />
         </div>
         <div className="header-right">
+          <InfoMenu />
           <UserMenu />
         </div>
       </div>
@@ -524,7 +620,15 @@ function Community() {
                 teamMembers.map((member, index) => (
                   <div key={index} className="team-member-item">
                     <div className="team-member-name">{member.username}</div>
-                    <div className="team-member-status">Active</div>
+                    {member.username !== window.currentUsername && !following.some(f => f.username === member.username) && (
+                      <button
+                        className="community-follow-button"
+                        style={{ background: '#4d5d29', color: 'white' }}
+                        onClick={() => handleFollow(member.username)}
+                      >
+                        Follow
+                      </button>
+                    )}
                   </div>
                 ))
               ) : (
@@ -567,6 +671,11 @@ function Community() {
                       ></div>
                     </div>
                   </div>
+                  {challengeProgress.completed >= challengeProgress.total && (
+                    <div className="challenge-completed-message">
+                      🎉 Weekly challenge completed!
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="analytics-no-tasks">
@@ -607,6 +716,7 @@ function Community() {
           </div>
         </form>
       </Modal>
+
 
     </div>
   );
