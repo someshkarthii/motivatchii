@@ -42,4 +42,11 @@ urlpatterns = [
     path("api/following/<str:target_username>/tamagotchi/", tamagotchi_views.FollowingTamagotchiView.as_view(), name="following_tamagotchi"),
     path("api/following/<str:target_username>/coins/", user_views.FollowingCoinsView.as_view(), name="following_coins"),
     path('api/notifications/', user_views.NotificationsView.as_view(), name='notifications'),
+    # Community Challenge endpoints
+    path('api/challenges/weekly/', task_views.WeeklyChallengeView.as_view(), name='weekly_challenge'),
+    path('api/challenges/join/', task_views.JoinChallengeView.as_view(), name='join_challenge'),
+    path('api/challenges/status/', task_views.ChallengeStatusView.as_view(), name='challenge_status'),
+    path('api/challenges/team-members/', task_views.TeamMembersView.as_view(), name='team_members'),
+    path('api/challenges/team-progress/', task_views.TeamProgressView.as_view(), name='team_progress'),
+    path('api/challenges/debug-team/', task_views.DebugTeamView.as_view(), name='debug_team'),
 ]

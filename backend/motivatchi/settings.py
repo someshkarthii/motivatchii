@@ -106,8 +106,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://backend-purple-field-5089.fly.dev",
-    "https://motivatchi.fly.dev/",
-    "https://*.fly.dev",
+    "https://motivatchi.fly.dev",
 ]
 
 CORS_ALLOW_CREDENTIALS = True

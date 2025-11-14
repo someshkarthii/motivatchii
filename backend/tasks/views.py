@@ -1,15 +1,18 @@
 
 from rest_framework import viewsets, permissions
-from .models import Task
-from .serializers import TaskSerializer
+from .models import Task, WeeklyChallenge, ChallengeParticipation
+from .serializers import TaskSerializer, WeeklyChallengeSerializer, ChallengeParticipationSerializer
 from users.models import Account
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
 from tamagotchi.models import Tamagotchi
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from collections import Counter
+import random
 
 
 class TaskView(viewsets.ModelViewSet):
@@ -243,3 +246,447 @@ class TaskView(viewsets.ModelViewSet):
             "task_status": task.status
         })
 
+
+class WeeklyChallengeView(APIView):
+    """
+    API endpoint to get or create the current week's challenge.
+    Challenges run from Sunday 12:00 AM to Saturday 11:59 PM.
+    """
+    
+    def get(self, request):
+        """
+        GET the current weekly challenge. If one doesn't exist for this week, create it.
+        Returns: Challenge details (task_count, priority, description, start_date, deadline)
+        """
+        now = timezone.now()
+        
+        # Calculate the current week's Sunday 12:00 AM
+        last_sunday = now - timedelta(days=now.weekday() + 1 if now.weekday() != 6 else 0)
+        if now.weekday() == 6:  # Sunday
+            last_sunday = now
+        last_sunday = last_sunday.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Calculate next Saturday 11:59 PM
+        next_saturday = last_sunday + timedelta(days=6, hours=23, minutes=59, seconds=59)
+        
+        # Try to get existing challenge for this week
+        challenge = WeeklyChallenge.objects.filter(
+            start_date__lte=now,
+            deadline__gte=now
+        ).first()
+        
+        # If no challenge exists for current week, create one
+        if not challenge:
+            challenge = self._generate_weekly_challenge(last_sunday, next_saturday)
+        
+        serializer = WeeklyChallengeSerializer(challenge)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def _generate_weekly_challenge(self, start_date, deadline):
+        """
+        Helper method to generate a random weekly challenge.
+        Randomly selects task count (15-30) and priority (Low/Medium/High).
+        """
+        task_count = random.randint(15, 30)
+        priorities = ['Low', 'Medium', 'High']
+        priority = random.choice(priorities)
+        description = f"Complete {task_count} {priority} priority tasks"
+        
+        challenge = WeeklyChallenge.objects.create(
+            task_count=task_count,
+            priority=priority,
+            description=description,
+            start_date=start_date,
+            deadline=deadline
+        )
+        return challenge
+
+
+class JoinChallengeView(APIView):
+    """
+    API endpoint for users to join the current weekly challenge.
+    """
+    
+    def post(self, request):
+        """
+        POST to join the current weekly challenge.
+        Creates a ChallengeParticipation record linking the user to the challenge.
+        Returns: Success message and participation details
+        """
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            user = Account.objects.get(id=user_id)
+        except Account.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get current week's challenge
+        now = timezone.now()
+        challenge = WeeklyChallenge.objects.filter(
+            start_date__lte=now,
+            deadline__gte=now
+        ).first()
+        
+        if not challenge:
+            return Response({"error": "No active challenge found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if user already joined this challenge
+        participation, created = ChallengeParticipation.objects.get_or_create(
+            user=user,
+            challenge=challenge
+        )
+        
+        if not created:
+            return Response({
+                "message": "Already joined this challenge",
+                "challenge_id": challenge.id
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            "message": "Successfully joined the challenge",
+            "challenge_id": challenge.id,
+            "joined_at": participation.joined_at
+        }, status=status.HTTP_201_CREATED)
+
+
+class ChallengeStatusView(APIView):
+    """
+    API endpoint to check if the current user has joined the current weekly challenge.
+    """
+    
+    def get(self, request):
+        """
+        GET whether the user has joined the current weekly challenge.
+        Returns: Boolean indicating if user has joined
+        """
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            user = Account.objects.get(id=user_id)
+        except Account.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get current week's challenge
+        now = timezone.now()
+        challenge = WeeklyChallenge.objects.filter(
+            start_date__lte=now,
+            deadline__gte=now
+        ).first()
+        
+        if not challenge:
+            return Response({"has_joined": False}, status=status.HTTP_200_OK)
+        
+        # Check if user has joined this challenge
+        has_joined = ChallengeParticipation.objects.filter(
+            user=user,
+            challenge=challenge
+        ).exists()
+        
+        return Response({"has_joined": has_joined}, status=status.HTTP_200_OK)
+
+
+class TeamMembersView(APIView):
+    """
+    API endpoint to get team members for the current weekly challenge.
+    Team = users who mutually follow the current user (pairwise mutual following).
+    """
+    
+    def get(self, request):
+        """
+        GET list of team members who mutually follow the current user.
+        Returns: List of usernames who mutually follow the current user and joined the challenge
+        """
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            user = Account.objects.get(id=user_id)
+        except Account.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get current week's challenge
+        now = timezone.now()
+        challenge = WeeklyChallenge.objects.filter(
+            start_date__lte=now,
+            deadline__gte=now
+        ).first()
+        
+        if not challenge:
+            return Response({"team_members": []}, status=status.HTTP_200_OK)
+        
+        # Check if current user has joined the challenge
+        user_joined = ChallengeParticipation.objects.filter(
+            user=user,
+            challenge=challenge
+        ).exists()
+        
+        if not user_joined:
+            return Response({"team_members": []}, status=status.HTTP_200_OK)
+        
+        # Get user's following and followers lists
+        following_usernames = set(user.following or [])
+        follower_usernames = set(user.followers or [])
+        
+        # Find mutual followers (users who follow each other with current user)
+        mutual_usernames = following_usernames & follower_usernames
+
+        # Build transitive team: start with current user + direct mutual followers
+        team_usernames = set([user.username]) | set(mutual_usernames)
+        
+        # Expand team to include mutual followers of team members (transitive)
+        expanded = True
+        while expanded:
+            expanded = False
+            current_team_size = len(team_usernames)
+            
+            # Get all team member accounts
+            team_accounts = Account.objects.filter(username__in=team_usernames)
+            
+            for member in team_accounts:
+                member_following = set(member.following or [])
+                member_followers = set(member.followers or [])
+                member_mutual = member_following & member_followers
+                
+                # Add mutual followers of this team member to the team
+                new_members = member_mutual - team_usernames
+                if new_members:
+                    team_usernames.update(new_members)
+                    expanded = True
+            
+            # Break if no new members were added
+            if len(team_usernames) == current_team_size:
+                break
+
+        # Get all team members who have joined the challenge (excluding current user)
+        team_participations = ChallengeParticipation.objects.filter(
+            challenge=challenge,
+            user__username__in=team_usernames
+        ).select_related('user').exclude(user=user)
+
+        team_members = [
+            {"username": p.user.username}
+            for p in team_participations
+        ]
+
+        return Response({"team_members": team_members}, status=status.HTTP_200_OK)
+
+
+class TeamProgressView(APIView):
+    """
+    API endpoint to get the team's progress on the current weekly challenge.
+    Calculates total tasks completed by all team members matching the challenge criteria.
+    """
+    
+    def get(self, request):
+        """
+        GET team progress for current weekly challenge.
+        Returns: completed (tasks done), total (target), and checks if reward should be given
+        """
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            user = Account.objects.get(id=user_id)
+        except Account.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get current week's challenge
+        now = timezone.now()
+        challenge = WeeklyChallenge.objects.filter(
+            start_date__lte=now,
+            deadline__gte=now
+        ).first()
+        
+        if not challenge:
+            return Response({
+                "completed": 0,
+                "total": 0
+            }, status=status.HTTP_200_OK)
+        
+        # Check if current user has joined the challenge
+        user_participation = ChallengeParticipation.objects.filter(
+            user=user,
+            challenge=challenge
+        ).first()
+        
+        if not user_participation:
+            return Response({
+                "completed": 0,
+                "total": challenge.task_count
+            }, status=status.HTTP_200_OK)
+        
+        # Get user's following and followers lists
+        following_usernames = set(user.following or [])
+        follower_usernames = set(user.followers or [])
+        
+        # Find mutual followers (users who follow each other with current user)
+        mutual_usernames = following_usernames & follower_usernames
+
+        # Build transitive team: start with current user + direct mutual followers
+        team_usernames = set([user.username]) | set(mutual_usernames)
+        
+        # Expand team to include mutual followers of team members (transitive)
+        expanded = True
+        while expanded:
+            expanded = False
+            current_team_size = len(team_usernames)
+            
+            # Get all team member accounts
+            team_accounts = Account.objects.filter(username__in=team_usernames)
+            
+            for member in team_accounts:
+                member_following = set(member.following or [])
+                member_followers = set(member.followers or [])
+                member_mutual = member_following & member_followers
+                
+                # Add mutual followers of this team member to the team
+                new_members = member_mutual - team_usernames
+                if new_members:
+                    team_usernames.update(new_members)
+                    expanded = True
+            
+            # Break if no new members were added
+            if len(team_usernames) == current_team_size:
+                break
+        
+        # Get all team members who have joined the challenge
+        team_participations = list(ChallengeParticipation.objects.filter(
+            challenge=challenge,
+            user__username__in=team_usernames
+        ).select_related('user'))
+        
+        if not team_participations:
+            # No team members joined
+            return Response({
+                "completed": 0,
+                "total": challenge.task_count,
+                "challenge_complete": False,
+                "reward_earned": 0
+            }, status=status.HTTP_200_OK)
+        
+        # Build team from all team members who joined (including current user)
+        valid_team_members = [p.user for p in team_participations]
+        
+        # Get IDs of all valid team members
+        team_user_ids = [member.id for member in valid_team_members]
+        
+        # Count completed tasks matching challenge criteria
+        # Tasks must be completed during the challenge period and match the priority
+        completed_count = Task.objects.filter(
+            user_id__in=team_user_ids,
+            status='completed',
+            priority__iexact=challenge.priority,
+            completed_at__gte=challenge.start_date,
+            completed_at__lte=challenge.deadline
+        ).count()
+        
+        # Check if challenge is complete and reward hasn't been claimed
+        challenge_complete = completed_count >= challenge.task_count
+        reward_amount = 0
+        
+        if challenge_complete:
+            # Award 20 coins to ALL team members who haven't claimed yet
+            team_participations_to_reward = ChallengeParticipation.objects.filter(
+                challenge=challenge,
+                user_id__in=team_user_ids,
+                reward_claimed=False
+            ).select_related('user')
+            
+            for participation in team_participations_to_reward:
+                # Award coins to each team member
+                participation.user.coins += 20
+                participation.user.save()
+                
+                # Mark reward as claimed
+                participation.reward_claimed = True
+                participation.save()
+            
+            # Check if current user just got rewarded
+            if not user_participation.reward_claimed:
+                reward_amount = 20
+        
+        return Response({
+            "completed": completed_count,
+            "total": challenge.task_count,
+            "challenge_complete": challenge_complete,
+            "reward_earned": reward_amount
+        }, status=status.HTTP_200_OK)
+
+
+class DebugTeamView(APIView):
+    """
+    Debug endpoint to check following/followers data for troubleshooting team issues.
+    """
+    
+    def get(self, request):
+        """
+        GET debug info about current user's following/followers and potential team.
+        """
+        user_id = request.session.get("user_id")
+        if not user_id:
+            return Response({"error": "Not authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            user = Account.objects.get(id=user_id)
+        except Account.DoesNotExist:
+            return Response({"error": "Account not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get current week's challenge
+        now = timezone.now()
+        challenge = WeeklyChallenge.objects.filter(
+            start_date__lte=now,
+            deadline__gte=now
+        ).first()
+        
+        if not challenge:
+            return Response({"error": "No active challenge"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check participation
+        user_joined = ChallengeParticipation.objects.filter(
+            user=user,
+            challenge=challenge
+        ).exists()
+        
+        # Get following/followers
+        following = user.following or []
+        followers = user.followers or []
+        mutual = list(set(following) & set(followers))
+        
+        # Check each mutual follower's data
+        mutual_details = []
+        for username in mutual:
+            try:
+                other_user = Account.objects.get(username=username)
+                other_joined = ChallengeParticipation.objects.filter(
+                    user=other_user,
+                    challenge=challenge
+                ).exists()
+                
+                mutual_details.append({
+                    "username": username,
+                    "joined_challenge": other_joined,
+                    "their_following": other_user.following or [],
+                    "their_followers": other_user.followers or [],
+                    "they_follow_you": user.username in (other_user.following or []),
+                    "they_are_followed_by_you": user.username in (other_user.followers or [])
+                })
+            except Account.DoesNotExist:
+                mutual_details.append({
+                    "username": username,
+                    "error": "User not found"
+                })
+        
+        return Response({
+            "current_user": user.username,
+            "joined_challenge": user_joined,
+            "following": following,
+            "followers": followers,
+            "mutual": mutual,
+            "mutual_details": mutual_details
+        }, status=status.HTTP_200_OK)
