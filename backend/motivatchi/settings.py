@@ -1,11 +1,14 @@
 from pathlib import Path
 import os
+import dj_database_url
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY")
+# SECRET KEY
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 
-DEBUG = True
+# DEBUG setting
+DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 
 # Application definition
@@ -28,7 +31,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',          
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -58,16 +61,13 @@ TEMPLATES = [
 WSGI_APPLICATION = 'motivatchi.wsgi.application'
 
 
-# Database
+# DATABASE — Use Railway's DATABASE_URL env var (pointing to Render Postgres)
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'motivatchi_db',
-        'USER': 'motivatchi_db_user',
-        'PASSWORD': 'AGblZK1ZYFj3N6t2m4VHTmc35F14RdS9',
-        'HOST': 'dpg-d49q6omuk2gs739fseg0-a.ohio-postgres.render.com',
-        'PORT': '5432',
-    }
+    "default": dj_database_url.config(
+        default=os.getenv("DATABASE_URL"),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
 
 
@@ -87,50 +87,59 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files
+# -----------------------------
+# STATIC FILES (IMPORTANT FOR RAILWAY)
+# -----------------------------
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-
-# ✅ CORS / CSRF configuration
+# -----------------------------
+# CORS / CSRF SETTINGS
+# -----------------------------
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://backend-purple-field-5089.fly.dev",
-    "https://motivatchi.fly.dev",
+    # ADD LATER: Your Vercel frontend URL
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://backend-purple-field-5089.fly.dev",
-    "https://motivatchi.fly.dev",
+    # ADD LATER: Your Railway backend URL
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
+
+# -----------------------------
+# ALLOWED HOSTS
+# -----------------------------
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
-    "backend-purple-field-5089.fly.dev",
-    "motivatchi.fly.dev",
-    ".fly.dev",
+    ".railway.app",
 ]
 
 
-#Cookie configuration for session persistence across frontend/backend
-SESSION_COOKIE_SAMESITE = "None"       # allow cookies cross-site
-SESSION_COOKIE_SECURE = True        # only True for HTTPS
-CSRF_COOKIE_SAMESITE = "None"          # allow CSRF cookie cross-site
-CSRF_COOKIE_SECURE = True           # only True for HTTPS
+# -----------------------------
+# COOKIES (Cross-origin support for Vercel frontend)
+# -----------------------------
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
 
-# Explicitly name session cookie (helps debugging)
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
+
 SESSION_COOKIE_NAME = "sessionid"
 
 
-# REST Framework settings
+# -----------------------------
+# REST FRAMEWORK
+# -----------------------------
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
