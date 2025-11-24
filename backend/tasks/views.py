@@ -1,8 +1,8 @@
 
 from rest_framework import viewsets, permissions
-from .models import Task, WeeklyChallenge, ChallengeParticipation
-from .serializers import TaskSerializer, WeeklyChallengeSerializer, ChallengeParticipationSerializer
-from users.models import Account
+from .models import Task, WeeklyChallenge, ChallengeParticipation, Event
+from .serializers import TaskSerializer, WeeklyChallengeSerializer, ChallengeParticipationSerializer, EventSerializer, LeaderboardEntrySerializer
+from users.models import Account, Notification
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,6 +13,7 @@ from django.utils import timezone
 from datetime import timedelta, datetime
 from collections import Counter
 import random
+from django.db import models
 
 
 class TaskView(viewsets.ModelViewSet):
@@ -690,3 +691,75 @@ class DebugTeamView(APIView):
             "mutual": mutual,
             "mutual_details": mutual_details
         }, status=status.HTTP_200_OK)
+
+class CurrentEventView(APIView):
+    """
+    Returns the currently active event, or null.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        event = Event.objects.filter(is_active=True).order_by('-start').first()
+        if not event:
+            return Response(None, status=status.HTTP_200_OK)
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class EventLeaderboardView(APIView):
+    """
+    Returns the leaderboard for the current active event.
+    Ends the event automatically if the end datetime has passed.
+    """
+
+    def get(self, request):
+        now = timezone.now()
+        try:
+            event = Event.objects.get(start__lte=now, end__gte=now)
+        except Event.DoesNotExist:
+            return Response({"detail": "No active event"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Automatically end event if it has ended
+        if event.has_ended():
+            winner = event.end_event()
+            return Response({
+                "detail": "Event has ended",
+                "winner": winner.username if winner else None
+            })
+
+        # Get completed tasks counts for this event
+        task_counts = (
+            Task.objects.filter(
+                status="completed",
+                completed_at__range=(event.start, event.end)
+            )
+            .values('user__username', 'user')
+            .annotate(count=models.Count('id'))
+            .order_by('-count', 'user')
+        )
+
+        # Top 3 leaderboard
+        leaderboard = []
+        for rank, item in enumerate(task_counts[:3], start=1):
+            leaderboard.append({
+                "rank": rank,
+                "username": item['user__username'],
+                "tasks_completed": item['count']
+            })
+
+        # Get current user rank
+        user_rank = None
+        user_completed_tasks = 0
+        user_id = request.session.get("user_id")
+        if user_id:
+            for idx, item in enumerate(task_counts, start=1):
+                if item['user'] == user_id:
+                    user_rank = idx
+                    user_completed_tasks = item['count']
+                    break
+
+        return Response({
+            "event_name": event.name,
+            "leaderboard": leaderboard,
+            "your_rank": user_rank,
+            "your_completed_tasks": user_completed_tasks
+        })

@@ -49,4 +49,7 @@ urlpatterns = [
     path('api/challenges/team-members/', task_views.TeamMembersView.as_view(), name='team_members'),
     path('api/challenges/team-progress/', task_views.TeamProgressView.as_view(), name='team_progress'),
     path('api/challenges/debug-team/', task_views.DebugTeamView.as_view(), name='debug_team'),
+    # Global events
+    path('api/events/current/', task_views.CurrentEventView.as_view(), name='current_event'),
+    path('api/events/leaderboard/', task_views.EventLeaderboardView.as_view(), name='event_leaderboard'),
 ]

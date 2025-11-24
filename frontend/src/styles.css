@@ -466,7 +466,8 @@ code {
 
 .table-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 60px; /* name | category | priority | deadline | actions */
+  /* added one 60px column for "Notify", actions moved to last (60px) */
+  grid-template-columns: 2fr 1fr 1fr 1fr 60px 60px; /* name | category | priority | deadline | notify | actions */
   align-items: center;
   padding: 1.5rem 3rem;
   background: transparent;
@@ -505,7 +506,8 @@ code {
 .table-header .header-cell:nth-child(2) { text-align: center; }
 .table-header .header-cell:nth-child(3) { text-align: center; }
 .table-header .header-cell:nth-child(4) { text-align: center; }
-.table-header .header-cell:nth-child(5) { text-align: right; }
+.table-header .header-cell:nth-child(5) { text-align: center; } /* notify column */
+.table-header .header-cell:nth-child(6) { text-align: right; } /* actions */
 
 .priority-dropdown {
   position: absolute;
@@ -584,7 +586,8 @@ code {
 
 .table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 60px; /* add category & actions columns */
+  /* add notify column */
+  grid-template-columns: 2fr 1fr 1fr 1fr 60px 60px; /* name | category | priority | deadline | notify | actions */
   padding: 1rem 0.5rem;
   border-bottom: 1px solid #e9ecef;
 }
@@ -614,7 +617,8 @@ code {
 .table-row .table-cell:nth-child(2) { text-align: center; }
 .table-row .table-cell:nth-child(3) { text-align: center; }
 .table-row .table-cell:nth-child(4) { text-align: center; }
-.table-row .table-cell:nth-child(5) { text-align: right; }
+.table-row .table-cell:nth-child(5) { text-align: center; } /* notify */
+.table-row .table-cell:nth-child(6) { text-align: right; } /* actions */
 
 .row-action-button {
   background: transparent;
@@ -2281,4 +2285,7 @@ code {
   .community-default-message p {
     font-size: 1.3rem;
   }
+}
+.global-challenges-section {
+  padding-top: 20px;
 }

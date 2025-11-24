@@ -11,6 +11,7 @@ const TaskModal = ({ isOpen, onClose, mode, onSave, task, existingTasks }) => {
   const [priority, setPriority] = useState(null);
   const [category, setCategory] = useState(null);
   const [deadline, setDeadline] = useState(null);
+  const [notify, setNotify] = useState(true); // NEW: notify toggle
   
   // Validation error messages
   const [nameError, setNameError] = useState(null);
@@ -29,6 +30,7 @@ const TaskModal = ({ isOpen, onClose, mode, onSave, task, existingTasks }) => {
     setPriority(null);
     setCategory(null);
     setDeadline(null);
+    setNotify(true); // Reset notify to default true
     setNameError(null);
     setPriorityError(null);
     setDeadlineError(null);
@@ -53,6 +55,8 @@ const TaskModal = ({ isOpen, onClose, mode, onSave, task, existingTasks }) => {
           setDeadline(new Date(task.deadline));
         }
       }
+      // prefill notify (default true)
+      setNotify(task.notify === undefined ? true : !!task.notify);
       setNameError(null);
       setPriorityError(null);
       setDeadlineError(null);
@@ -99,6 +103,8 @@ const TaskModal = ({ isOpen, onClose, mode, onSave, task, existingTasks }) => {
       priority: priority.value, 
       category: category ? category.trim() : "",
       deadline: isoLocal,
+      // include notify preference
+      notify: !!notify
     };
     onSave(taskData);
     handleClose();
@@ -184,6 +190,16 @@ const TaskModal = ({ isOpen, onClose, mode, onSave, task, existingTasks }) => {
           />
           {deadlineError && <div className="task-error">{deadlineError}</div>}
         
+        {/* Notify field */}
+          <label className="task-modal-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              checked={notify}
+              onChange={(e) => setNotify(e.target.checked)}
+            />
+            Notify me about this task
+          </label>
+
         {/* Create/Edit Tasks */}
           <div className="task-modal-footer">
             <button type="submit" className="task-button task-button-primary">

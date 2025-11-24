@@ -1,8 +1,10 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.utils import timezone
-from users.models import Account
-from tasks.models import Task, WeeklyChallenge, ChallengeParticipation
+from users.models import Account, Notification
+from tasks.models import Task, WeeklyChallenge, ChallengeParticipation, Event
+from datetime import date, timedelta
+from django.db import models
 
 class TaskViewTests(APITestCase):
     def setUp(self):
@@ -353,3 +355,91 @@ class ChallengeFlowTests(APITestCase):
         data = resp.json()
         # completed should be 0 or less than Charlie's count because Alice's team excludes Charlie
         self.assertEqual(data["completed"], 0)
+
+class EventTests(APITestCase):
+    def setUp(self):
+        # Users
+        self.user1 = Account.objects.create(username="user1", hashed_password="pw1")
+        self.user2 = Account.objects.create(username="user2", hashed_password="pw2")
+
+        # Event: started 1 day ago, ends 1 day later
+        self.event = Event.objects.create(
+            name="Test Event",
+            start=timezone.now() - timedelta(days=1),
+            end=timezone.now() + timedelta(days=1),
+            reward_coins=100,
+            is_active=True
+        )
+
+        # Session for user1
+        session = self.client.session
+        session["user_id"] = self.user1.id
+        session.save()
+
+        # URL
+        self.url = "/api/events/leaderboard/"
+
+    def test_leaderboard_empty(self):
+        """Leaderboard empty if no tasks completed"""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["leaderboard"], [])
+        self.assertIsNone(data["your_rank"])
+
+    def test_leaderboard_with_tasks(self):
+        """Leaderboard shows tasks completed by multiple users"""
+        # Tasks
+        Task.objects.create(user=self.user1, name="Task1", status="completed", completed_at=timezone.now())
+        Task.objects.create(user=self.user2, name="Task1", status="completed", completed_at=timezone.now())
+        Task.objects.create(user=self.user2, name="Task2", status="completed", completed_at=timezone.now())
+
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        leaderboard = data["leaderboard"]
+        self.assertEqual(len(leaderboard), 2)
+        self.assertEqual(leaderboard[0]["username"], "user2")  # 2 tasks
+        self.assertEqual(leaderboard[1]["username"], "user1")  # 1 task
+        self.assertEqual(data["your_rank"], 2)  # user1 rank
+
+    def test_event_end_winner(self):
+        """Event ends automatically, awards winner coins and notification"""
+        # End event in the past
+        self.event.end = timezone.now() - timedelta(hours=1)
+        self.event.save()
+
+        # Tasks
+        Task.objects.create(user=self.user1, name="Task1", status="completed", completed_at=self.event.start + timedelta(hours=1))
+        Task.objects.create(user=self.user2, name="Task1", status="completed", completed_at=self.event.start + timedelta(hours=2))
+        Task.objects.create(user=self.user2, name="Task2", status="completed", completed_at=self.event.start + timedelta(hours=3))
+
+        response = self.client.get(self.url)
+        data = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("detail", data)
+        self.assertEqual(data["detail"], "Event has ended")
+        self.assertEqual(data["winner"], "user2")
+
+        # Winner coins
+        self.user2.refresh_from_db()
+        self.assertEqual(self.user2.coins, self.event.reward_coins)
+
+        # Notification
+        notif = Notification.objects.filter(user=self.user2).first()
+        self.assertIsNotNone(notif)
+        self.assertIn("won the event", notif.message)
+
+        # Event inactive
+        self.event.refresh_from_db()
+        self.assertFalse(self.event.is_active)
+
+    def test_no_active_event(self):
+        """Response when no active event exists"""
+        self.event.is_active = False
+        self.event.save()
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 404)
+        self.assertIn("detail", response.json())
+        self.assertEqual(response.json()["detail"], "No active event")

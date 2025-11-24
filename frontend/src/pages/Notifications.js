@@ -80,6 +80,8 @@ export default function Notifications() {
       .filter(t => t.deadline)
       .map(t => ({ ...t, _deadlineDate: parseDateOnly(t.deadline) }))
       .filter(t => {
+        // Only include tasks that opted into notifications (default true)
+        if (t.notify === false) return false;
         // exclude completed status only; overdue tasks will be shown in Overdue section
         if (t.status === 'completed') return false;
         return t._deadlineDate && t._deadlineDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate()) && t._deadlineDate <= cutoff;
@@ -94,7 +96,11 @@ export default function Notifications() {
     return tasks
       .filter(t => t.deadline)
       .map(t => ({ ...t, _deadlineDate: parseDateOnly(t.deadline) }))
-      .filter(t => t._deadlineDate && t._deadlineDate < today && t.status !== 'completed')
+      .filter(t => {
+        // Only include tasks that opted into notifications (default true)
+        if (t.notify === false) return false;
+        return t._deadlineDate && t._deadlineDate < today && t.status !== 'completed';
+      })
       .sort((a, b) => a._deadlineDate - b._deadlineDate);
   }, [tasks]);
 

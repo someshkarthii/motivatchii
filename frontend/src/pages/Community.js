@@ -38,6 +38,15 @@ function Community() {
   const [weeklyChallenge, setWeeklyChallenge] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [challengeProgress, setChallengeProgress] = useState({ completed: 0, total: 0 });
+
+  const [globalEvent, setGlobalEvent] = useState(null); // event info
+  const [leaderboard, setLeaderboard] = useState([]); // top 3
+  const [noSeasonalEventsActive, setNoSeasonalEventsActive] = useState(true);
+  const currentUsername = "You";
+  const [currentUserRank, setCurrentUserRank] = useState(null);
+  const [currentUserCompleted, setCurrentUserCompleted] = useState(null);
+  
+
   const outfitImages = {
     default: frogIcon,
     bubble: bubbleFrog,
@@ -159,6 +168,56 @@ function Community() {
     };
 
     checkChallengeStatus();
+
+    const fetchGlobalEvent = async () => {
+      try {
+
+        // Get leaderboard for current event -> must happen before current event call in case an event just ended
+        const resLeaderboard = await fetch("https://backend-purple-field-5089.fly.dev/api/events/leaderboard/", {
+          credentials: "include"
+        });
+        const dataLeaderboard = await resLeaderboard.json();
+
+        if (resLeaderboard.status === 404 || dataLeaderboard.detail === "No active event") {
+          setGlobalEvent(null);
+          setLeaderboard([]);
+          setCurrentUserRank(null);
+          setNoSeasonalEventsActive(true);
+          return;
+        }
+
+        if (dataLeaderboard.detail === "Event has ended") {
+          setGlobalEvent(null);
+          setLeaderboard([]);
+          setCurrentUserRank(null);
+          setNoSeasonalEventsActive(true);
+          return;
+        }
+
+        setNoSeasonalEventsActive(false);
+
+        // Get current event
+        const resEvent = await fetch("https://backend-purple-field-5089.fly.dev/api/events/current/", {
+          credentials: "include"
+        });
+        const dataEvent = await resEvent.json();
+
+        if (!dataEvent) {
+          setGlobalEvent(null);
+          return;
+        }
+        setGlobalEvent(dataEvent);
+
+        setLeaderboard(dataLeaderboard.leaderboard || []);
+        setCurrentUserRank(dataLeaderboard.your_rank);
+        setCurrentUserCompleted(dataLeaderboard.your_completed_tasks);
+
+      } catch (err) {
+        console.error("Failed to fetch global event data:", err);
+      }
+    };
+
+    fetchGlobalEvent();
   }, []);
 
   // Fetch team members for the current challenge
@@ -190,7 +249,6 @@ function Community() {
           completed: data.completed,
           total: data.total
         });
-        
         // If reward was earned, show notification or update UI
         if (data.reward_earned > 0) {
           console.log(`Congratulations! You earned ${data.reward_earned} coins!`);
@@ -681,6 +739,91 @@ function Community() {
                 <div className="analytics-no-tasks">
                   <p>Join the challenge to track progress</p>
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Global Challenges Section */}
+      <div className="global-challenges-section" style={{ width: '100%', margin: '32px auto 0 auto', maxWidth: '1200px' }}>
+          <div className="task-panels" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', alignItems: 'start', width: '100%', paddingLeft: '1px', paddingRight: '12px' }}>
+          <div className="trends-header" style={{gridColumn: '1 / -1', marginBottom: 0}}>
+            <FaUsers className="trends-icon" />
+            <h2 className="trends-title">Global Challenges</h2>
+            <span className="trends-period">Seasonal Events</span>
+          </div>
+          {/* Challenge Panel - show global challenge if available, else seasonal event */}
+          <div className="analytics-panel challenge-panel" style={{ minHeight: '340px', height: '100%' }}>
+            <div className="panel-header">
+              <FaUsers className="panel-icon" style={{ color: '#4d5d29' }} />
+              <h3>{noSeasonalEventsActive ? 'No Seasonal Event' : (globalEvent?.name)}</h3>
+            </div>
+            <div className="challenge-content">
+              {noSeasonalEventsActive ? (
+                <div className="analytics-no-tasks">
+                  <p>There are no current seasonal events. Please check back later.</p>
+                </div>
+              ) : (
+                <>
+                  <div className="challenge-description">Complete as many tasks</div>
+                  <div className="challenge-details">
+                    <div className="challenge-detail-item">
+                      <span className="detail-label">Reward:</span>
+                      <span className="detail-value coins-reward">
+                        <img src={coinIcon} alt="Coin" className="reward-coin-icon" />
+                        {globalEvent?.reward_coins ?? 0}
+                      </span>
+                    </div>
+                    <div className="challenge-detail-item">
+                      <span className="detail-label">Start:</span>
+                      <span className="detail-value">{globalEvent?.start ? new Date(globalEvent.start).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</span>
+                    </div>
+                    <div className="challenge-detail-item">
+                      <span className="detail-label">End:</span>
+                      <span className="detail-value">{globalEvent?.end ? new Date(globalEvent.end).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          {/* Leaderboard Panel */}
+          <div className="analytics-panel team-panel" style={{ minHeight: '340px', height: '100%' }}>
+            <div className="panel-header">
+              <FaUsers className="panel-icon" style={{ color: '#4d5d29' }} />
+              <h3>Leaderboard</h3>
+              <span className="task-count">{noSeasonalEventsActive ? 0 : (currentUserRank > 3 ? 4 : Math.min(3, leaderboard.length))}</span>
+            </div>
+            <div className="team-members-list">
+              {noSeasonalEventsActive ? (
+                <div className="analytics-no-tasks">
+                  <p>There are no current seasonal events. Please check back later.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Top 3 users with numbered ranking and medal icons */}
+                  {leaderboard.slice(0, 3).map((user, idx) => (
+                    <div key={user.username} className="team-member-item">
+                      <div className="team-member-name">
+                        #{idx + 1} {user.username === currentUsername ? 'You' : user.username}
+                        <span className="leaderboard-medal" style={{marginLeft: '8px'}}>
+                          {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}
+                        </span>
+                      </div>
+                      <div className="team-member-tasks">
+                        {user.tasks_completed} tasks finished
+                      </div>
+                    </div>
+                  ))}
+                  {/* Show current user if not in top 3, with their ranking */}
+                  {currentUserRank > 3 && (
+                    <div className="team-member-item your-rank">
+                      <div className="team-member-name">#{currentUserRank} You</div>
+                      <div className="team-member-tasks">{currentUserCompleted} tasks finished</div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

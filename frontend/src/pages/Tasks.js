@@ -231,6 +231,13 @@ const Tasks = () => {
     setEditingTask(null);
   };
 
+  // New: toggle notify for a task
+  const toggleNotify = (task) => {
+    // compute current effective value (default true) and invert it
+    const newValue = !(task.notify ?? true);
+    updateTask({ id: task.id, notify: newValue });
+  };
+
   return (
     <div className="tasks-page">
       {/* Header */}
@@ -310,6 +317,20 @@ const Tasks = () => {
                 </div>
               )}
             </div>
+
+            {/* UPDATED: slightly shift Notify header left for better alignment */}
+            <div
+              className="header-cell"
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginLeft: '-6px' /* small nudge left to align with row checkboxes */
+              }}
+            >
+              Notify
+            </div>
+
             <div className="header-cell actions">{/* actions spacer */}</div>
           </div>
 
@@ -321,6 +342,17 @@ const Tasks = () => {
                 <div className="table-cell">{task.category || ''}</div>
                 <div className="table-cell">{task.priority}</div>
                 <div className="table-cell">{task.deadline}</div>
+
+                {/* NEW notify checkbox cell */}
+                <div className="table-cell" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    aria-label={`Notify for ${task.name}`}
+                    checked={(task.notify ?? true)}
+                    onChange={() => toggleNotify(task)}
+                  />
+                </div>
+
                 <div className="table-cell actions">
                   <button
                     className="row-action-button"

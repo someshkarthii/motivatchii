@@ -60,14 +60,15 @@ export const TasksProvider = ({ children }) => {
           category: taskData.category, 
           deadline: taskData.deadline,
           priority: taskData.priority, 
-          status: 'in_progress'
+          status: 'in_progress',
+          notify: taskData.notify === undefined ? true : !!taskData.notify
         })
       });
 
       const data = await response.json();
       if (response.ok) {
         console.log("Task created:", data);
-        setTasks((prev) => [...prev, data]); // append to react tasks instead of fetching from backend for better performance
+        setTasks((prev) => [...prev, data]); // append to react tasks
       } else {
         apiCallError(data, "Failed to create task");
       }
@@ -78,20 +79,15 @@ export const TasksProvider = ({ children }) => {
 
   const updateTask = async (taskData) => {
     try {
-      //change in django
-      const response = await fetch(`https://backend-purple-field-5089.fly.dev/api/tasks/${taskData.id}/`, {
+      // send only provided fields (taskData may be partial)
+      const { id, ...payload } = taskData;
+      const response = await fetch(`https://backend-purple-field-5089.fly.dev/api/tasks/${id}/`, {
         method: "PATCH",
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: taskData.name,
-          priority: taskData.priority,
-          deadline: taskData.deadline,
-          status: taskData.status,
-          category: taskData.category,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const updatedTask = await response.json();
